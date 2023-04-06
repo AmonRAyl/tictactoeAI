@@ -32,8 +32,45 @@ def init():
     #     asel = (input("Mode: "))
     return board, end, player, asel
 
+def printBoard(board):
+    print("Actual board:")
+    print(board[0])
+    print(board[1])
+    print(board[2])
+    
+def minimaxHeuristic(cboard, moves,movesahead):
+    score=0
+    count=0
+    #apply first set of moves from the list , it is currently hardocded to 4 moves ahead
+    for set in moves:
+        newset=set.copy()
+        row,col=newset[0]
+        cboard[row][col]="0" if count%2==0 else "X"
+        count+=1
+        printBoard(cboard)
+        for s_moveahead in (newset[1]):
+            row,col=s_moveahead[0]
+            cboard[row][col]="0" if count%2==0 else "X"
+            count+=1
+            printBoard(cboard)
+            for t_moveahead in (s_moveahead[1]):
+                row,col=t_moveahead[0]
+                cboard[row][col]="0" if count%2==0 else "X"
+                count+=1
+                printBoard(cboard)
+                for f_moveahead in (t_moveahead[1]):
+                    row,col=f_moveahead
+                    cboard[row][col]="0" if count%2==0 else "X"
+                    count+=1
+                    printBoard(cboard)
+                    #check if position can exist 
+                    
+                    if checkWin(cboard):
+                        score+=1000
 
-def minimaxHeuristic(board, moves):
+                    cboard[row][col]=" "
+                    count-=1
+
     # things to consider:
     # 1. if the move is a winning move +1000
     # 2. if the move is a losing move -1000
@@ -88,11 +125,11 @@ def aiselector(board, asel):
             if cboard[row][col] == " ":
                 break
     elif asel == "minimax":
-        movesahead = 3
+        movesahead = 4
         # explore all possible moves
         all_moves = minimax_explore_moves(cboard, movesahead)
         # then analize heuristics of each move
-        row, col = minimaxHeuristic(all_moves)
+        row, col = minimaxHeuristic(cboard,all_moves,movesahead)
 
     elif asel == "alphabeta":
         pass
@@ -105,9 +142,7 @@ def aiselector(board, asel):
 
 def game(board, player, asel):
     os.system("cls" if os.name == "nt" else "clear")
-    print("Actual board:")
-    for row in board:
-        print(row)
+    printBoard(board)
     if player == 0:
         print("Player 1's turn")
         print("Enter the row and column of the square you want to place your X in")
@@ -127,9 +162,7 @@ def main():
         player = game(board, player, asel)
         end = checkWin(board)
 
-    print("Actual board:")
-    for row in board:
-        print(row)
+    printBoard(board)
     print("Player 1 wins!" if (player + 1) % 2 == 0 else "AI wins!")
 
 
