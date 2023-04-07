@@ -20,11 +20,9 @@ def checkWin(board, player):
     for combination in winning_combinations:
         if all(board[row][col] == "X" for row, col in combination) and (player == 2 or player == 0):
             return True
-        elif all(board[row][col] == "0" for row, col in combination) and player == 1:
+        if all(board[row][col] == "0" for row, col in combination) and (player == 2 or player == 1):
             return True
     return False
-
-
 def init():
     board = [[" " for i in range(3)] for j in range(3)]
     end = False
@@ -38,13 +36,11 @@ def init():
     #     print("Possible modes: " + ", ".join(aimode))
     #     asel = (input("Mode: "))
     return board, end, player, asel
-
 def printBoard(board):
     os.system("cls" if os.name == "nt" else "clear")
     print("Actual board:")
     for row in board:
         print(row)
-
 def checkTwoInRow(board, player):
     total = 0
     
@@ -89,11 +85,30 @@ def getminormax(moves, minormax):
                 maxscore=b[1][2]
                 bestmove=j
     return bestmove
-
+def calculateScore(cboard):
+    score=0
+    #check if position can exist 
+    if checkWin(cboard,1)==True and checkWin(cboard,0)==True:
+        score=0
+    else:
+        # 1. if you won +1000 if you lost -1000
+        if checkWin(cboard,0):
+            score-=2000
+        if checkWin(cboard,1):
+            score+=2000
+        #check if oponent has a two in a row
+        if checkTwoInRow(cboard,1)!=0:
+            score+=800
+        if checkTwoInRow(cboard,0)!=0:
+            score-=300*checkTwoInRow(cboard,0)
+    randomfactor=random.randint(98500, 100000)
+    score=score*randomfactor/100000
+    return score
     
 def minimaxHeuristic(cboard, moves,movesahead):
     score=0
     count=0
+    minscore=50000
     #apply first set of moves from the list , it is currently hardocded to 4 moves ahead
     for set in moves:
         row,col=set[0]
@@ -107,26 +122,14 @@ def minimaxHeuristic(cboard, moves,movesahead):
                 row2,col2=t_moveahead[0]
                 cboard[row2][col2]="0" if count%2==0 else "X"
                 count+=1
+                minscore=50000
                 for f_moveahead in (t_moveahead[1]):
                     row3,col3=f_moveahead
                     cboard[row3][col3]="0" if count%2==0 else "X"
                     count+=1
-                    score=0
-                    minscore=500000
-                    #check if position can exist 
-                    if checkWin(cboard,1)==True and checkWin(cboard,0)==True:
-                        score=0
-                    else:
-                        # 1. if you won +1000 if you lost -1000
-                        if checkWin(cboard,0):
-                            score-=2000
-                        if checkWin(cboard,1):
-                            score+=2000
-                        #check if oponent has a two in a row
-                        if checkTwoInRow(cboard,1)!=0:
-                            score+=800
-                        if checkTwoInRow(cboard,0)!=0:
-                            score-=300*checkTwoInRow(cboard,0)
+                    
+                    score=calculateScore(cboard)
+                    
                     f_moveahead.append(score)
                     if minscore>score:
                         minscore=score
@@ -196,7 +199,6 @@ def aiselector(board, asel):
         all_moves = minimax_explore_moves(cboard, movesahead)#when it checks 4 moves ahead it has to look if there can be done , as when the game advanceses less moves are going to be possible until there are less than 4
         # then analize heuristics of each move
         row, col = minimaxHeuristic(cboard,all_moves,movesahead)
-
     elif asel == "alphabeta":
         pass
     elif asel == "mcts":
@@ -207,7 +209,6 @@ def aiselector(board, asel):
 
 
 def game(board, player, asel):
-    printBoard(board)
     if player == 0:
         print("Player 1's turn")
         print("Enter the row and column of the square you want to place your X in")
@@ -223,9 +224,13 @@ def game(board, player, asel):
 def main():
     board, end, player, asel = init()
 
+    #board=[['X', 'O', 'X'],['X', 'O', ' '],['O', ' ', ' ']]
+    printBoard(board)
     while not end:
         player = game(board, player, asel)
-        end = checkWin(board,2)
+        printBoard(board)
+        end = checkWin(board,1)
+        end = checkWin(board,0)
 
     printBoard(board)
     print("Player 1 wins!" if (player + 1) % 2 == 0 else "AI wins!")
