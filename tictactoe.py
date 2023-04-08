@@ -1,7 +1,7 @@
 #
 import os
 import random
-
+import copy
 
 def checkWin(board, player):
     winning_combinations = [
@@ -17,10 +17,15 @@ def checkWin(board, player):
         [(0, 0), (1, 1), (2, 2)],
         [(0, 2), (1, 1), (2, 0)],
     ]
+    # for combination in winning_combinations:
+    #     if all(board[row][col] == "X" for row, col in combination) and (player == 2 or player == 0):
+    #         return True
+    #     if all(board[row][col] == "O" for row, col in combination) and (player == 2 or player == 1):
+    #         return True
     for combination in winning_combinations:
-        if all(board[row][col] == "X" for row, col in combination) and (player == 2 or player == 0):
+        if board[combination[0][0]][combination[0][1]]==board[combination[1][0]][combination[1][1]]==board[combination[2][0]][combination[2][1]]=="X" and (player == 2 or player == 0):
             return True
-        if all(board[row][col] == "0" for row, col in combination) and (player == 2 or player == 1):
+        if board[combination[0][0]][combination[0][1]]==board[combination[1][0]][combination[1][1]]==board[combination[2][0]][combination[2][1]]=="O" and (player == 2 or player == 1):
             return True
     return False
 def init():
@@ -68,41 +73,51 @@ def checkTwoInRow(board, player):
 def getminormax(moves, minormax):
     if minormax=="min":
         minscore=100000000
+        NaNcount=0
         for j in moves:#in doesnt work for the first case
-            b=j.copy()
+            b=copy.deepcopy(j)
             while len(b[1])!=3: #i should maybe use isinstance or smth to check if it is list as if the game advanceses number of moves might be 3
                 b=b[1]
-            if b[1][2]<minscore:
+            if b[1][2]=="NaN":
+                NaNcount+=1
+            elif b[1][2]<minscore:
                 minscore=b[1][2]
+                bestmove=j
+            if NaNcount==len(moves):
                 bestmove=j
     else:
         maxscore=-100000000
+        NaNcount=0
         for j in moves:
-            b=j.copy()
+            b=copy.deepcopy(j)
             while len(b[1])!=3:
                 b=b[1]
-            if b[1][2]>maxscore:
+            if b[1][2]=="NaN":
+                NaNcount+=1
+            elif b[1][2]>maxscore:
                 maxscore=b[1][2]
+                bestmove=j
+            if NaNcount==len(moves):
                 bestmove=j
     return bestmove
 def calculateScore(cboard):
     score=0
     #check if position can exist 
     if checkWin(cboard,1)==True and checkWin(cboard,0)==True:
-        score=0
+        score="NaN"
     else:
         # 1. if you won +1000 if you lost -1000
         if checkWin(cboard,0):
-            score-=2000
+            score-=4000
         if checkWin(cboard,1):
-            score+=2000
+            score+=10000
         #check if oponent has a two in a row
         if checkTwoInRow(cboard,1)!=0:
             score+=800
         if checkTwoInRow(cboard,0)!=0:
             score-=300*checkTwoInRow(cboard,0)
-    randomfactor=random.randint(98500, 100000)
-    score=score*randomfactor/100000
+        randomfactor=random.randint(98500, 100000)
+        score=score*randomfactor/100000
     return score
     
 def minimaxHeuristic(cboard, moves,movesahead):
@@ -112,30 +127,35 @@ def minimaxHeuristic(cboard, moves,movesahead):
     #apply first set of moves from the list , it is currently hardocded to 4 moves ahead
     for set in moves:
         row,col=set[0]
-        cboard[row][col]="0" if count%2==0 else "X"
+        cboard[row][col]="O" if count%2==0 else "X"
         count+=1
         for s_moveahead in (set[1]):
             row1,col1=s_moveahead[0]
-            cboard[row1][col1]="0" if count%2==0 else "X"
+            cboard[row1][col1]="O" if count%2==0 else "X"
             count+=1
             for t_moveahead in (s_moveahead[1]):
                 row2,col2=t_moveahead[0]
-                cboard[row2][col2]="0" if count%2==0 else "X"
+                cboard[row2][col2]="O" if count%2==0 else "X"
                 count+=1
                 minscore=50000
+                bestmove="NaN"
                 for f_moveahead in (t_moveahead[1]):
                     row3,col3=f_moveahead
-                    cboard[row3][col3]="0" if count%2==0 else "X"
+                    cboard[row3][col3]="O" if count%2==0 else "X"
                     count+=1
                     
                     score=calculateScore(cboard)
                     
                     f_moveahead.append(score)
-                    if minscore>score:
+                    if bestmove=="NaN":
+                        bestmove=f_moveahead
+                    if score != "NaN" and minscore>score:
                         minscore=score
                         bestmove=f_moveahead
                     cboard[row3][col3]=" "
                     count-=1
+                # while bestmove[2]=="NaN":   #idea is to remove moves one by one until we are not in a NaN situation and then calculate the score
+                #     removeerror=1
                 t_moveahead[1]=bestmove
                 #t_moveahead[1]=getminormax(t_moveahead[1],"min") #select min
                 cboard[row2][col2]=" "
@@ -187,7 +207,7 @@ def minimax_explore_moves(cboard, movesahead):
 
 def aiselector(board, asel):
     # copy board to not modify the original
-    cboard = [row[:] for row in board]
+    cboard = copy.deepcopy(board)
     if asel == "random":
         while True:
             row, col = random.randint(0, 2), random.randint(0, 2)
@@ -224,13 +244,12 @@ def game(board, player, asel):
 def main():
     board, end, player, asel = init()
 
-    #board=[['X', 'O', 'X'],['X', 'O', ' '],['O', ' ', ' ']]
+    board=[['X', ' ', ' '], [' ', 'O', 'X'], [' ', 'O', ' ']]
     printBoard(board)
     while not end:
         player = game(board, player, asel)
         printBoard(board)
-        end = checkWin(board,1)
-        end = checkWin(board,0)
+        end = checkWin(board,((player + 1) % 2))
 
     printBoard(board)
     print("Player 1 wins!" if (player + 1) % 2 == 0 else "AI wins!")
